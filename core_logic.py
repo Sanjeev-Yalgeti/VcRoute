@@ -29,7 +29,7 @@ def run_astar(start_node_id, target_node_id, nodes_dict, edges_list):
     
     for u, v in edges_list:
         if u in neighbors and v in neighbors:
-            # We treat roads as two-way (bidirectional) for now to ensure we can route properly
+            # bidirecctional roads
             neighbors[u].append(v)
             neighbors[v].append(u)
 
