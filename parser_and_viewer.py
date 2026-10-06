@@ -3,16 +3,13 @@ import sys
 import math
 from core_logic import run_astar
 
-# ==========================================
-# 1. PARSER: Read paths.ipl
-# ==========================================
 def load_paths(filepath):
     # Add any Group IDs here that you want to completely erase from the map!
-    EXCLUDED_GROUPS = set(
-        [1473, 328, 329, 327, 322, 320, 323, 324, 332, 330, 331, 682, 683, 684, 1300, 1284, 1276, 1277, 1278, 1279, 1280]
-        + list(range(1081, 1092))
-        + list(range(1285, 1316))
-    )
+    EXCLUDED_GROUPS = set([1488,1487,1486,1485,1484,1483,1482,1481,1480,1473,1475,1474,1472,1467,1463,1461,1465,1466,1399,1400,1398,1431,1434,1428,321,1403,1496,1493,1566,1489,1495,1497,1498, 328,1424,320,322,1459,1470,1471,1402,1401,1435,1433,1404,324,323,1494,1857,1858,1491,1490,1477,1476,1468,1464,1462,1469,1460,1855,
+    1700, 1701, 1702, 1703, 1704, 1705, 1706, 1707, 1708, 1709, 1710, 1711, 1712, 1713, 1714, 1715, 1716, 1717, 1718, 1719, 1720, 1721, 1722, 1723, 1724, 1725, 1726, 1727, 1728, 1729, 1730, 1731, 1732, 1733, 1734, 1735, 1736, 1737, 1738, 1739, 1740, 1741, 1742, 1743, 1744, 1745, 1746, 1747, 1748, 1749, 1750, 1751, 1752, 1753, 1754, 1755, 1756, 1757, 1758, 1759, 1760, 1761, 1762, 1763, 1764, 1765, 1766, 1767, 1768, 1769, 1770, 1771, 1772, 1773, 1774, 1775, 1776, 1777, 1778, 1779, 1780, 1781, 1782, 1783, 1784, 1785, 1786, 1787, 1788, 1789, 1790, 1791, 1792, 1793, 1794, 1795, 1796, 1797, 1798, 1799, 1800  
+    ])
+    # 1473, 328, 329, 327,1478,1406,1407,1408,1409,1410,1411,1412,1412,1414, 322, 320, 323, 324, 332, 330, 331, 
+        # 682, 683, 684, 1300, 1284, 1276, 1277, 1278, 1279, 1280,1437,1438,1427,1426,1424
     
     nodes = {}  # Key: (group_id, local_id), Value: (X, Y)
     edges = []  # Tuple of ((group, id), (group, id))
@@ -45,7 +42,7 @@ def load_paths(filepath):
                         
                     # Node line usually has 12 parts
                     elif len(parts) >= 12:
-                        if current_group_id > 1400 or current_group_id in EXCLUDED_GROUPS:
+                        if current_group_id in EXCLUDED_GROUPS:
                             continue # Completely skip this group
                             
                         try:
@@ -86,9 +83,9 @@ def load_paths(filepath):
     print("Stitching map intersections together (this takes a second)...")
     grid = {}
     for node_key, (wx, wy) in nodes.items():
-        # Group nodes into 50x50 spatial buckets for super fast distance checking
-        gx = int(wx / 50)
-        gy = int(wy / 50)
+        # Group nodes into 60x60 spatial buckets for super fast distance checking
+        gx = int(wx / 60)
+        gy = int(wy / 60)
         if (gx, gy) not in grid: grid[(gx, gy)] = []
         grid[(gx, gy)].append(node_key)
         
@@ -104,17 +101,25 @@ def load_paths(filepath):
                                 x1, y1 = nodes[n1]
                                 x2, y2 = nodes[n2]
                                 dist = math.sqrt((x1-x2)**2 + (y1-y2)**2)
-                                if dist < 30.0: # Huge increase to catch long bridges
+                                if dist < 60.0: # Connect inter-group intersections up to 60 units apart
                                     edges.append((n1, n2))
                                     cross_group_edges += 1
 
     # --- MANUAL EDGE OVERRIDES ---
-    # Connect long straight gaps/bridges in original game files (e.g. Group 363 <-> Group 364)
+    # Connect long straight gaps/bridges in original game files (e.g. Group 363 <-> Group 364, Group 642 / 1395 / 338)
     manual_connections = [
         ((363, 9), (364, 6)),
         ((364, 6), (363, 9)),
         ((363, 0), (364, 1)),
         ((364, 1), (363, 0)),
+
+        # Group 642 / 1395 / 338 / 1555 long road & bridge gaps
+        ((1395, 7), (338, 4)),
+        ((338, 4), (1395, 7)),
+        ((1395, 7), (642, 7)),
+        ((642, 7), (1395, 7)),
+        ((1555, 0), (1558, 0)),
+        ((1558, 0), (1555, 0)),
     ]
     for n1, n2 in manual_connections:
         if n1 in nodes and n2 in nodes:
@@ -142,7 +147,7 @@ def main():
             bg_image = pygame.Surface((1000, 800))
             bg_image.fill((30, 30, 30))
 
-    # Scale image uniformly so it fits well on a monitor (Max height 900)
+    # Map dimensions (kept constant)
     img_w, img_h = bg_image.get_size()
     max_height = 750
     if img_h > max_height:
@@ -151,10 +156,16 @@ def main():
         img_h = int(img_h * ratio)
         bg_image = pygame.transform.scale(bg_image, (img_w, img_h))
 
-    WIDTH, HEIGHT = img_w, img_h
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    # Window size can be increased independently of map size
+    WINDOW_WIDTH = max(1280, img_w + 200)
+    WINDOW_HEIGHT = max(850, img_h + 100)
+    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
     pygame.display.set_caption("GTA VC GPS - Map Aligner")
         
+    # Calculate map offset to keep it centered in the window
+    map_x = (WINDOW_WIDTH - img_w) // 2
+    map_y = (WINDOW_HEIGHT - img_h) // 2
+
     # Coordinate Transform Variables (Perfectly Calibrated)
     offset_x = 394.5
     offset_y = 335.0
@@ -163,8 +174,8 @@ def main():
     # Helper to convert Game World coords to Pygame Screen coords
     def world_to_screen(wx, wy):
         # We invert WY because in-game North is +Y, but Pygame North is -Y
-        sx = (wx * scale) + offset_x
-        sy = (-wy * scale) + offset_y 
+        sx = (wx * scale) + offset_x + map_x
+        sy = (-wy * scale) + offset_y + map_y
         return int(sx), int(sy)
 
     def get_closest_node(mouse_pos):
@@ -200,6 +211,11 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.VIDEORESIZE:
+                WINDOW_WIDTH, WINDOW_HEIGHT = event.w, event.h
+                screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
+                map_x = (WINDOW_WIDTH - img_w) // 2
+                map_y = (WINDOW_HEIGHT - img_h) // 2
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     show_nodes = not show_nodes
@@ -237,8 +253,9 @@ def main():
         if keys[pygame.K_w]:     scale += zoom_speed
         if keys[pygame.K_s]:     scale = max(0.001, scale - zoom_speed)
                 
-        # Draw everything
-        screen.blit(bg_image, (0, 0))
+        # Draw everything (fill dark canvas outside map)
+        screen.fill((20, 20, 25))
+        screen.blit(bg_image, (map_x, map_y))
         
         # Draw raw network if toggled ON (For easy alignment)
         if show_nodes:
